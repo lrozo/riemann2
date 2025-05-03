@@ -30,6 +30,11 @@ If you are using VSCode, you can add these environment variables via your `.vsco
 }
 ```
 
+Alternatively, you can add the following line in your `.env`:
+```
+GEOMSTATS_BACKEND=pytorch
+```
+
 If you are using Pycharm, you can add these environment variables by adding the following to "Run", "Edit Configurations", in the file to run, click on "Environment", and add the following environment variable:
 ```
 GEOMSTATS_BACKEND=pytorch
@@ -48,7 +53,7 @@ We provide a pre-trained model in `./trained_models` for the example on $\mathbb
 
 ### RiemannSquared
 
-You can find the main Riemann2 model in `./riemannsequared`, where we provide implementations of Wrapped GPLVMS, which in turn, builds on Wrapped GPs and Wrapped Gaussian distributions. Moreover, we provide implementations of back-constraints models (e.g., in `./riemannsequared/models/wrapped_gplvm.py`), and dynamic prior models like the ones used in Gaussian Process Dynamical Models (GPDM) (see `./riemannsequared/models/gpdm_prior.py`)
+You can find the main Riemann2 model in `./riemannsquared`, where we provide implementations of Wrapped GPLVMS, which in turn, builds on Wrapped GPs and Wrapped Gaussian distributions. Moreover, we provide implementations of back-constraints models (e.g., in `./riemannsquared/models/wrapped_gplvm.py`), and dynamic prior models like the ones used in Gaussian Process Dynamical Models (GPDM) (see `./riemannsquared/models/gpdm_prior.py`)
 
 ### Manifolds
 
