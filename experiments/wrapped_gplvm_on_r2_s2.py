@@ -75,16 +75,12 @@ def load_wgplvm_on_toy_experiment(model_name) -> Tuple[WrappedGPLVM, torch.Tenso
 
     # Whether to split into train/test, and test percentage
     split_into_train_test = True
-    test_percentage = 0.2
 
     # A subsample rate, to consider less data. (1 == all dataset)
     subsample_rate = 1
 
     # Noise that is synthetically added to the data.
     noise_level_in_data = 0.0
-
-    # Random state to have the train/test split be deterministic.
-    random_state_for_split = 420
 
     # Priors for likelihood noise, and kernel length scale and output scale.
     # (They need to be gpytorch priors)
@@ -123,7 +119,7 @@ def load_wgplvm_on_toy_experiment(model_name) -> Tuple[WrappedGPLVM, torch.Tenso
 
     # Setting up a multitask kernel with a low-mean prior for
     # the lengthscale.
-    kernel = MultitaskKernel(ScaleKernel(RBFKernel(lengthscale_prior=lengthscale_prior),  # (ard_num_dims=latent_dim),  # Commented out to simplify training
+    kernel = MultitaskKernel(ScaleKernel(RBFKernel(lengthscale_prior=lengthscale_prior),  
                                          outputscale_prior=outputscale_prior), 
                                          num_tasks=tangent_space_dim,
                              rank=tangent_space_dim)
@@ -158,7 +154,6 @@ def load_wgplvm_on_toy_experiment(model_name) -> Tuple[WrappedGPLVM, torch.Tenso
       targets_kernel = k_fct_euclidean * k_fct_sphere
       targets_kernel.kernels[0].lengthscale = 0.2
       targets_kernel.kernels[1].lengthscale = 0.7
-      # targets_kernel.outputscale = 1.0  # TODO ADD?
       wrapped_gplvm_on_r2_s2 = BackConstrainedWrappedGPLVM(latent_dim, product_manifold_r2_s2, basepoint_function,
                                                           toy_example_training_data, tangent_space_likelihood,
                                                           tangent_kernel=kernel, trajectory_indexes=trajectory_indexes,
@@ -210,15 +205,11 @@ def toy_experiment_on_letter_manifolds():
     else:
        learning_rate = 0.025
     load_saved = True
-    discrete_geodesic = True
-    density_metric = True
-    density_sigma = [0.1, 0.25, 0.5, 1.0, 2.0]
+    refine_discrete_geodesic = True
 
     # Visualization hyperparameters:
-    # We go for low resolution (10) for speed in the iteration process.
     uncertainty_and_volume_grid_size = 50
     discretized_grid_size = 50
-    projection_grid_size = 75
     if model_name == 'gpdm':
         max_volume = 100
     else:
@@ -226,23 +217,6 @@ def toy_experiment_on_letter_manifolds():
 
     # Load the model specified above.
     wrapped_gplvm_on_r2_s2, train_data, test_data, data_indexes = load_wgplvm_on_toy_experiment(model_name)
-
-    # Plot initial latent variables
-    fig = plt.figure(figsize=(7, 7))
-    fig_ax = fig.gca()
-    print("Visualizing latent space")
-    visualize_latent_space(
-        fig_ax,
-        wrapped_gplvm_on_r2_s2,
-        grid_size_in_latent_space=uncertainty_and_volume_grid_size,
-        plot_uncertainty=False
-    )
-    fig_ax.axis('equal')
-    plt.show()
-    print(f'Lengthscale value value = {wrapped_gplvm_on_r2_s2.tangent_kernel.data_covar_module.base_kernel.lengthscale}')
-    print(f'Outputscale value value = {wrapped_gplvm_on_r2_s2.tangent_kernel.data_covar_module.outputscale}')
-    # print(f'Back constraints weight value = {wrapped_gplvm_on_r2_s2.latent_variable.weights.data}')
-    print(f'Latent variables = {wrapped_gplvm_on_r2_s2.latent_variable()}')
 
     # Train the model.
     wrapped_gplvm_on_r2_s2 = train_wrapped_gplvm(wrapped_gplvm_on_r2_s2, verbose=True, save_as=exp_name,
@@ -255,17 +229,12 @@ def toy_experiment_on_letter_manifolds():
     # Print some of the model parameters
     print(f'Lengthscale value value = {wrapped_gplvm_on_r2_s2.tangent_kernel.data_covar_module.base_kernel.lengthscale}')
     print(f'Outputscale value value = {wrapped_gplvm_on_r2_s2.tangent_kernel.data_covar_module.outputscale}')
-    # print(f'Back constraints weight value = {wrapped_gplvm_on_r2_s2.latent_variable.weights.data}')
     print(f'Latent variables = {wrapped_gplvm_on_r2_s2.latent_variable()}')
 
     # Check training error
     posterior = wrapped_gplvm_on_r2_s2(wrapped_gplvm_on_r2_s2.latent_variable())
     error = (posterior.mean - wrapped_gplvm_on_r2_s2.training_targets)
     print("Mean absolute error: ", torch.mean(torch.abs(error)))
-
-    # # Projecting test data onto the latent space and plotting the projections
-    # print("Projecting test data onto latent space via back constraints")
-    # projected_test_data = wrapped_gplvm_on_r2_s2.latent_variable.back_constraint_function(test_data)
 
     # Create plots folder
     plots_path = "/plots/"
@@ -287,9 +256,6 @@ def toy_experiment_on_letter_manifolds():
     # Latent space, latent test data (BC) and GP uncertainty
     print("Visualizing latent space (with GP uncertainty)")
     visualize_latent_space(fig1_ax, wrapped_gplvm_on_r2_s2, grid_size_in_latent_space=uncertainty_and_volume_grid_size)
-    #  and plotting the projections
-    # fig1_ax.scatter(projected_test_data[:, 0].detach().numpy(), projected_test_data[:, 1].detach().numpy(), c="r",
-    #                 marker="d", alpha=0.1)
     fig1_ax.axis("off")
     fig1.tight_layout()
 
@@ -305,49 +271,29 @@ def toy_experiment_on_letter_manifolds():
     # Compute geodesics
     p0 = wrapped_gplvm_on_r2_s2.latent_variable()[0]
     p1 = wrapped_gplvm_on_r2_s2.latent_variable()[-1]
-    if discrete_geodesic:
-        print("Computing discrete geodesics")
-        discretized_path = ROOT_DIR.as_posix() + "/trained_models/" + exp_name + "_discretized.pt"
-        wgpvlm_as_manifold = DiscreteGPLVMManifoldWrapper(wrapped_gplvm_on_r2_s2,
-                                                          [torch.linspace(*limits[0], discretized_grid_size),
-                                                           torch.linspace(*limits[1], discretized_grid_size)])
-        
-        if os.path.isfile(discretized_path):
-           print("Pre-computed grid for trained model found.")
-           wgpvlm_as_manifold = wgpvlm_as_manifold.from_path(wgpvlm_as_manifold, discretized_path)
-        else:
-          print("Pre-computed grid for trained model NOT found. Proceeding to compute it. This can take a while.")
-          wgpvlm_as_manifold.fit()
-          wgpvlm_as_manifold.save_discretized_manifold(discretized_path)
-        # Compute geodesic
-        geodesic, _ = wgpvlm_as_manifold.connecting_geodesic(p0, p1)
-    # else:
-        print("Computing continuous geodesics")
+    print("Computing discrete geodesics")
+    discretized_path = ROOT_DIR.as_posix() + "/trained_models/" + exp_name + "_discretized.pt"
+    wgpvlm_as_manifold = DiscreteGPLVMManifoldWrapper(wrapped_gplvm_on_r2_s2,
+                                                      [torch.linspace(*limits[0], discretized_grid_size),
+                                                        torch.linspace(*limits[1], discretized_grid_size)])
+    
+    if os.path.isfile(discretized_path):
+        print("Pre-computed grid for trained model found.")
+        wgpvlm_as_manifold = wgpvlm_as_manifold.from_path(wgpvlm_as_manifold, discretized_path)
+    else:
+      print("Pre-computed grid for trained model NOT found. Proceeding to compute it. This can take a while.")
+      wgpvlm_as_manifold.fit()
+      wgpvlm_as_manifold.save_discretized_manifold(discretized_path)
+    geodesic, _ = wgpvlm_as_manifold.connecting_geodesic(p0, p1)
+    if refine_discrete_geodesic:
+        print("Refining discrete geodesics as continuous geodesics")
         wgpvlm_as_manifold = GPLVMManifoldWrapper(wrapped_gplvm_on_r2_s2)
         geodesic, _ = geodesic_minimizing_energy(wgpvlm_as_manifold,
                                                  p0, p1, 
                                                  init_curve=geodesic,
-                                                 max_iter=200, lr=0.005)
-    if density_metric:
-       print("Computing density metric geodesics")
-       # Create density manifold
-       density_manifold = DensityMetricWrapper(wrapped_gplvm_on_r2_s2.latent_variable().detach(), sigma=density_sigma)
-       # Compute geodesics
-       density_geodesics = []
-       for sigma in density_sigma:
-          density_manifold.sigma = sigma
-          d_geodesic, _ = geodesic_minimizing_energy(density_manifold,
-                                                      p0, p1, 
-                                                      # init_curve=geodesic,
-                                                      max_iter=200, lr=0.5)
-          density_geodesics.append(d_geodesic)
+                                                 max_iter=100, lr=0.005)
     
     time = torch.linspace(0, 1, 50)
-    # Visualize density metric geodesics in latent space.
-    for d_geodesic in density_geodesics:
-      d_geodesic_points = d_geodesic(time).detach().numpy()
-      fig1_ax.plot(d_geodesic_points[:, 0], d_geodesic_points[:, 1], "-", color='maroon', linewidth=5)
-      fig2_ax.plot(d_geodesic_points[:, 0], d_geodesic_points[:, 1], "-", color='maroon', linewidth=5)
     # Visualize pullback geodesic in latent space.
     geodesic_points = geodesic(time).detach().numpy()
     fig1_ax.plot(geodesic_points[:, 0], geodesic_points[:, 1], "-", color='orange', linewidth=5)
@@ -365,17 +311,11 @@ def toy_experiment_on_letter_manifolds():
     print("Plotting the manifold predictions")
     figr2 = plt.figure(figsize=[7, 7])  # Euclidean plot R2
     fig_ax_r2 = figr2.gca()
-    # Sphere plot S2 with matplolib
-    # figs2 = plt.figure(figsize=[7, 7])
-    # fig_ax_s2 = figs2.add_subplot(111, projection='3d')
-    # visualize_wrapped_gplvm_on_r2_s2([fig_ax_r2, fig_ax_s2], wrapped_gplvm_on_r2_s2, plot_tangent_vectors=False,
-    #                                  geodesic=geodesic(time))
 
     # Sphere plot S2 with mayavi
     figs2 = mlab.figure(bgcolor=(1.0, 1.0, 1.0))
     visualize_wrapped_gplvm_on_r2_s2_mayavi(axes_r2=fig_ax_r2, fig_s2=figs2, wgplvm=wrapped_gplvm_on_r2_s2,
                                             traj_index=data_indexes, geodesic=geodesic(time), line=linear, 
-                                            d_geodesics=[d_geo(time) for d_geo in density_geodesics],
                                             plot_reconstructions=False)
 
     fig_ax_r2.axis("off")
@@ -396,10 +336,6 @@ def toy_experiment_on_letter_manifolds():
     linear_points2 = torch.lerp(p0, p1, time[:, None])
     wgd_of_geodesic = wrapped_gplvm_on_r2_s2(geodesic_points2).mean.detach().numpy()
     wgd_of_line = wrapped_gplvm_on_r2_s2(linear_points2).mean.detach().numpy()
-    wgd_of_density_geodesics = []
-    for d_geodesic in density_geodesics:
-       d_geodesic_points2 = d_geodesic(time2)
-       wgd_of_density_geodesics.append(wrapped_gplvm_on_r2_s2(d_geodesic_points2).mean.detach().numpy())
 
     # Compute percentage of points on sphere  
     g_on_sphere = np.isclose(np.linalg.norm(wgd_of_geodesic[:, 2:], axis=1), 1.0)
@@ -412,13 +348,8 @@ def toy_experiment_on_letter_manifolds():
     demos = [d.detach().numpy() for d in demos]
     dtwd_geodesic = np.array(get_dynamic_time_warping_distance_list(demos, [wgd_of_geodesic]))
     dtwd_line = np.array(get_dynamic_time_warping_distance_list(demos, [wgd_of_line]))
-    print('DTWD geodesic:', np.mean(dtwd_geodesic), np.std(dtwd_geodesic))
-    print('DTWD line:', np.mean(dtwd_line), np.std(dtwd_line))
-    for n in range(len(density_sigma)):
-       sigma = density_sigma[n]
-       wgd_of_d_geodesic = wgd_of_density_geodesics[n]
-       dtwd_d_geodesic = np.array(get_dynamic_time_warping_distance_list(demos, [wgd_of_d_geodesic]))
-       print('DTWD geodesic for density metric', sigma, ':', np.mean(dtwd_d_geodesic), np.std(dtwd_d_geodesic))
+    print(f'DTWD geodesic: {np.mean(dtwd_geodesic):.2f} pm {np.std(dtwd_geodesic):.2f}')
+    print(f'DTWD line: {np.mean(dtwd_line):.2f} pm {np.std(dtwd_line):.2f}')
 
     # Show plots
     mlab.show()
