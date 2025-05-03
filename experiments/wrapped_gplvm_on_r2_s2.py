@@ -47,7 +47,7 @@ from riemannsquared.models.wrapped_gplvm import WrappedGPLVM, BackConstrainedWra
 from riemannsquared.models.gpdm_prior import GPDMPrior
 
 
-ROOT_DIR = Path(__file__).parent.parent.parent.parent.resolve()
+ROOT_DIR = Path(__file__).parent.parent.resolve()
 
 
 def load_wgplvm_on_toy_experiment(model_name) -> Tuple[WrappedGPLVM, torch.Tensor, torch.Tensor]:
@@ -311,9 +311,12 @@ def toy_experiment_on_letter_manifolds():
         wgpvlm_as_manifold = DiscreteGPLVMManifoldWrapper(wrapped_gplvm_on_r2_s2,
                                                           [torch.linspace(*limits[0], discretized_grid_size),
                                                            torch.linspace(*limits[1], discretized_grid_size)])
+        
         if os.path.isfile(discretized_path):
+           print("Pre-computed grid for trained model found.")
            wgpvlm_as_manifold = wgpvlm_as_manifold.from_path(wgpvlm_as_manifold, discretized_path)
         else:
+          print("Pre-computed grid for trained model NOT found. Proceeding to compute it. This can take a while.")
           wgpvlm_as_manifold.fit()
           wgpvlm_as_manifold.save_discretized_manifold(discretized_path)
         # Compute geodesic
