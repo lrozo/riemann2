@@ -1,6 +1,6 @@
 # Riemann2: Learning Riemannian Submanifolds from Riemannian Data
 
-[![arXiv](assets/arXiv-2412.06264-red.svg)](https://arxiv.org/abs/2503.05540)
+[![arXiv](https://img.shields.io/badge/arXiv-2503.05540-b31b1b.svg)](ttps://arxiv.org/abs/2503.05540)
 
 </div>
 
