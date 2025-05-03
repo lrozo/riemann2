@@ -48,7 +48,7 @@ def load_letter_in_r2(
         datapoints over R2.
     """
     base_path = Path(__file__).parent.parent.parent.resolve()
-    dataset_path = base_path / "data" / "letter_manifolds"
+    dataset_path = base_path / "data" 
 
     with open(dataset_path / f"letter_{letter}_R2_{exp_id}.p", "rb") as fp:
         data = pickle.load(fp, encoding="latin1").T
@@ -136,7 +136,7 @@ def load_letter_in_s2(
         datapoints over S2.
     """
     base_path = Path(__file__).parent.parent.parent.resolve()
-    dataset_path = base_path / "data" / "letter_manifolds"
+    dataset_path = base_path / "data" 
 
     with open(dataset_path / f"letter_{letter}_S2_{exp_id}.p", "rb") as fp:
         data = pickle.load(fp, encoding="latin1")

@@ -268,7 +268,7 @@ def toy_experiment_on_letter_manifolds():
     # projected_test_data = wrapped_gplvm_on_r2_s2.latent_variable.back_constraint_function(test_data)
 
     # Create plots folder
-    plots_path = "/plots/wrappedGPLVM_R2S2/"
+    plots_path = "/plots/"
     if not os.path.exists(ROOT_DIR.as_posix() + plots_path):
         print("Creating new plots folder for the experiment...")
         os.makedirs(ROOT_DIR.as_posix() + plots_path)
