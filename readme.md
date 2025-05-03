@@ -36,11 +36,15 @@ GEOMSTATS_BACKEND=pytorch
 ```
 
 
-## Code structure & current status
+## Code structure
 
 ### Experiments
 
-In `./experiments` you can find two PoC examples, which means it is a good place to start. These include regression and latent variable modeling on $\mathbb{S}^2$ and $\mathbb{R}^2\times \mathbb{S}^2$. 
+In `./experiments` you can find our PoC example, which means it is a good place to start exploring the code. These include regression and latent variable modeling on $\mathbb{R}^2\times \mathbb{S}^2$. 
+
+### Pre-trained models
+
+We provide a pre-trained model in `./trained_models` for the example on $\mathbb{R}^2\times \mathbb{S}^2$, with a corresponding discretized (grid-like) latent space to accelerate geodesics computation. If you want to train a new model, you can just change the name of the experiment in the source file. Keep in mind that when once a new model is trained, it is necessary to discretize its latent space (for computing geodesics), which can take some minutes. 
 
 ### RiemannSquared
 
